@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>肆參建築師事務所 · 記帳</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f7f6f1; --card:#fff; --line:#e7e5dd; --line2:#d8d6cc;
+    --text:#1f2421; --muted:#6b6a64; --hint:#a3a29b;
+    --inc:#15803d; --exp:#b91c1c; --green:#0f6e56; --dark:#1f2421;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--bg);font-family:'Noto Sans TC',system-ui,sans-serif;color:var(--text);}
+  #app{max-width:560px;margin:0 auto;padding:0 14px 60px;}
+  .center{text-align:center;padding:70px 20px;color:var(--hint);}
+  header{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;flex-wrap:wrap;gap:6px;}
+  .brand{font-size:19px;font-weight:700;letter-spacing:.5px;}
+  .sync{font-size:12px;color:var(--inc);background:#dcfce7;padding:3px 9px;border-radius:20px;}
+  .who{font-size:12px;color:var(--muted);}
+  .who b{color:var(--text);}
+  .logout{font-size:12px;color:var(--exp);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:8px;}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;background:#f1efe8;padding:4px;border-radius:12px;}
+  .tab{flex:1;padding:9px 0;border:none;background:transparent;border-radius:8px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500;font-family:inherit;}
+  .tab.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;}
+  .field{margin-bottom:14px;}
+  label.lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--line2);border-radius:10px;font-size:15px;background:#fff;outline:none;font-family:inherit;}
+  .seg{display:flex;gap:8px;}
+  .segbtn{flex:1;padding:10px 0;border:1px solid var(--line2);border-radius:10px;background:#fff;font-size:15px;cursor:pointer;color:var(--muted);font-weight:500;font-family:inherit;}
+  .segbtn.exp{background:#fef2f2;border-color:#fca5a5;color:var(--exp);}
+  .segbtn.inc{background:#f0fdf4;border-color:#86efac;color:var(--inc);}
+  .row{display:flex;gap:10px;align-items:center;}
+  .primary{flex:1;padding:12px 0;background:var(--dark);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .ghost{padding:12px 18px;background:#f1efe8;color:var(--muted);border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit;}
+  .export{width:100%;padding:12px 0;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:14px;font-family:inherit;}
+  .filters{display:flex;gap:10px;margin-bottom:14px;}
+  .filters select{flex:1;}
+  .statrow{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;background:#f7f6f1;border:1px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center;}
+  .stat .l{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .empty{text-align:center;color:var(--hint);padding:30px;font-size:14px;}
+  .item{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;}
+  .item .main{flex:1;min-width:0;}
+  .item .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .item .cat{font-size:15px;font-weight:600;}
+  .item .amt{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .item .sub{font-size:12.5px;color:#8a8980;margin-top:3px;}
+  .item .note{color:var(--hint);}
+  .actions{display:flex;gap:4px;margin-left:10px;}
+  .mini{padding:5px 9px;background:#f1efe8;border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--muted);font-family:inherit;}
+  .mini.del{color:var(--exp);}
+  .sumhead{font-size:15px;font-weight:700;margin-bottom:12px;}
+  .sumrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1efe8;font-size:15px;}
+  .tag{font-size:11px;color:#8a8980;margin-left:8px;background:#f1efe8;padding:2px 6px;border-radius:6px;}
+  footer{margin-top:22px;font-size:12px;color:var(--hint);text-align:center;line-height:1.7;}
+  /* login */
+  .login{max-width:380px;margin:80px auto;text-align:center;padding:0 20px;}
+  .login h1{font-size:22px;margin-bottom:8px;}
+  .login p{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.7;}
+  .gbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:#fff;border:1px solid var(--line2);border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text);}
+  .gbtn img{width:18px;height:18px;}
+  .setup-warn{max-width:480px;margin:60px auto;background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:20px;font-size:14px;line-height:1.8;color:#92400e;}
+  .setup-warn code{background:#fef3c7;padding:1px 5px;border-radius:4px;font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app"><div class="center">載入中…</div></div>
+
+<!-- ============================================================
+     ↓↓↓ 第 1 步:把你的 Firebase 設定貼在這裡 ↓↓↓
+     (步驟教學在對話裡,照著做就會拿到這段)
+============================================================ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+// ====== 把下面這段換成你自己的 firebaseConfig ======
+const firebaseConfig = {
+  apiKey: "貼上你的_API_KEY",
+  authDomain: "貼上你的.firebaseapp.com",
+  projectId: "貼上你的_PROJECT_ID",
+  storageBucket: "貼上你的.appspot.com",
+  messagingSenderId: "貼上你的_SENDER_ID",
+  appId: "貼上你的_APP_ID"
+};
+// ===================================================
+
+const CONFIG_OK = !firebaseConfig.apiKey.includes("貼上");
+
+// ===== App 主程式 =====
+const DEFAULT_CATEGORIES = [
+  {id:"c1",name:"伙食費",type:"expense"},
+  {id:"c2",name:"雜項購置",type:"expense"},
+  {id:"c3",name:"旅費",type:"expense"},
+  {id:"c4",name:"文具用品及印刷",type:"expense"},
+  {id:"c5",name:"燃料費(油資)",type:"expense"},
+  {id:"c6",name:"什費(其他費用)",type:"expense"},
+  {id:"c7",name:"交際費",type:"expense"},
+  {id:"c8",name:"修繕費",type:"expense"},
+  {id:"c9",name:"交通費",type:"expense"},
+  {id:"c10",name:"勞務費",type:"expense"},
+  {id:"c11",name:"設計費",type:"income"},
+];
+
+const toMinguo = iso => { const d=new Date(iso+"T00:00:00"); return `${d.getFullYear()-1911}/${d.getMonth()+1}/${d.getDate()}`; };
+const minguoYear = iso => new Date(iso+"T00:00:00").getFullYear()-1911;
+const monthKey = iso => iso.slice(0,7);
+const fmt = n => new Intl.NumberFormat("zh-TW").format(Math.round(n));
+const todayISO = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const el = document.getElementById("app");
+
+// ===== 狀態 =====
+let state = {
+  user:null, records:[], categories:DEFAULT_CATEGORIES,
+  tab:"entry", editingId:null, filterYear:"all", filterMonth:"all",
+  f:{date:todayISO(),type:"expense",cat:"",amount:"",note:""},
+  newCat:{name:"",type:"expense"},
+};
+let app, auth, db, unsub=null, saving=false;
+
+// ===== 沒設定就顯示提示 =====
+if(!CONFIG_OK){
+  el.innerHTML = `<div class="setup-warn">
+    <b>尚未填入 Firebase 設定</b><br>
+    請打開 <code>index.html</code>,把上方 <code>firebaseConfig</code> 那一段換成你在
+    Firebase 主控台拿到的設定,再重新上傳。詳細步驟在和 Claude 的對話裡。
+  </div>`;
+} else {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  onAuthStateChanged(auth, u=>{
+    state.user = u;
+    if(u){ subscribe(u.uid); } else { if(unsub){unsub();unsub=null;} render(); }
+  });
+}
+
+function subscribe(uid){
+  if(unsub) unsub();
+  const ref = doc(db,"ledgers",uid);
+  unsub = onSnapshot(ref, snap=>{
+    if(snap.exists()){
+      const d = snap.data();
+      state.records = d.records||[];
+      state.categories = (d.categories&&d.categories.length)?d.categories:DEFAULT_CATEGORIES;
+    } else {
+      state.records=[]; state.categories=DEFAULT_CATEGORIES;
+    }
+    render();
+  }, err=>{ console.error(err); render(); });
+}
+
+async function save(){
+  if(!state.user) return;
+  saving=true;
+  try{
+    await setDoc(doc(db,"ledgers",state.user.uid),
+      {records:state.records, categories:state.categories, updatedAt:Date.now()},
+      {merge:true});
+  }catch(e){ alert("儲存失敗:"+e.message); }
+  saving=false;
+}
+
+// ===== 登入/登出 =====
+async function login(){
+  try{ await signInWithPopup(auth,new GoogleAuthProvider()); }
+  catch(e){ alert("登入失敗:"+e.message); }
+}
+async function logout(){ await signOut(auth); }
+
+// ===== 計算 =====
+function catName(id){ const c=state.categories.find(x=>x.id===id); return c?c.name:"(已刪除)"; }
+function filtered(){
+  return state.records.filter(r=>{
+    if(state.filterYear!=="all" && minguoYear(r.date)!==+state.filterYear) return false;
+    if(state.filterMonth!=="all" && monthKey(r.date).slice(5)!==state.filterMonth) return false;
+    return true;
+  });
+}
+function totals(){
+  let inc=0,exp=0; for(const r of filtered()){ r.type==="income"?inc+=r.amount:exp+=r.amount; }
+  return {inc,exp,net:inc-exp};
+}
+function years(){ return [...new Set(state.records.map(r=>minguoYear(r.date)))].sort((a,b)=>b-a); }
+function catSummary(){
+  const m={}; for(const r of filtered()){ m[r.catId]=(m[r.catId]||0)+(r.type==="income"?r.amount:-r.amount); }
+  return state.categories.filter(c=>m[c.id]!==undefined).map(c=>({name:c.name,type:c.type,total:m[c.id]}));
+}
+
+// ===== 動作 =====
+function submitRecord(){
+  const f=state.f, amt=parseFloat(f.amount);
+  if(!f.date||!f.cat||isNaN(amt)||amt<=0){ alert("請填寫日期、科目與正確金額"); return; }
+  const rec={id:state.editingId||"r"+Date.now()+Math.random().toString(36).slice(2,6),
+    date:f.date,type:f.type,catId:f.cat,amount:amt,note:(f.note||"").trim()};
+  if(state.editingId) state.records=state.records.map(r=>r.id===state.editingId?rec:r);
+  else state.records=[...state.records,rec];
+  state.records.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  resetForm(); state.tab="list"; save(); render();
+}
+function resetForm(){ state.editingId=null; state.f={date:todayISO(),type:"expense",cat:"",amount:"",note:""}; }
+function startEdit(id){ const r=state.records.find(x=>x.id===id); if(!r)return;
+  state.editingId=id; state.f={date:r.date,type:r.type,cat:r.catId,amount:String(r.amount),note:r.note};
+  state.tab="entry"; render(); }
+function delRecord(id){ if(!confirm("確定刪除這筆記錄?"))return; state.records=state.records.filter(r=>r.id!==id); save(); render(); }
+function addCat(){ const n=state.newCat.name.trim(); if(!n)return;
+  if(state.categories.find(c=>c.name===n&&c.type===state.newCat.type)){alert("已有相同科目");return;}
+  state.categories=[...state.categories,{id:"c"+Date.now(),name:n,type:state.newCat.type}];
+  state.newCat.name=""; save(); render(); }
+function delCat(id){ if(state.records.find(r=>r.catId===id)){ if(!confirm("此科目已有記錄,刪除後那些記錄會顯示(已刪除),仍要刪除?"))return; }
+  state.categories=state.categories.filter(c=>c.id!==id); save(); render(); }
+
+// ===== Excel 匯出:明細 + 月小計 + 年度總計 =====
+function exportExcel(){
+  const data = filtered().length?filtered():state.records;
+  if(!data.length){ alert("沒有資料可匯出"); return; }
+  const sorted=[...data].sort((a,b)=>a.date<b.date?-1:1);
+  const rows=[["日期","類型","科目","收入","支出","摘要","年度累計淨額"]];
+  let curMonth=null,mInc=0,mExp=0,running=0,curYear=null,yInc=0,yExp=0;
+  const flushMonth=()=>{ if(curMonth!==null) rows.push(["","",`▼ ${curMonth} 月小計`,mInc,mExp,`淨額 ${fmt(mInc-mExp)}`,""]); mInc=0;mExp=0; };
+  const flushYear=()=>{ if(curYear!==null){ rows.push(["","",`═ 民國 ${curYear} 年總計`,yInc,yExp,`年度淨額 ${fmt(yInc-yExp)}`,""]); rows.push([]); } yInc=0;yExp=0; };
+  for(const r of sorted){
+    const y=minguoYear(r.date), mk=monthKey(r.date);
+    if(curYear!==null&&y!==curYear){ flushMonth(); flushYear(); curMonth=null; running=0; }
+    if(curMonth!==null&&mk!==curMonth){ flushMonth(); }
+    curYear=y; curMonth=mk;
+    const inc=r.type==="income"?r.amount:0, exp=r.type==="expense"?r.amount:0;
+    running+=inc-exp; mInc+=inc;mExp+=exp;yInc+=inc;yExp+=exp;
+    rows.push([toMinguo(r.date), r.type==="income"?"收入":"支出", catName(r.catId), inc||"", exp||"", r.note, running]);
+  }
+  flushMonth(); flushYear();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:12},{wch:8},{wch:18},{wch:12},{wch:12},{wch:24},{wch:16}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"記帳明細");
+  const t=totals(), sum=[["科目","類型","淨額(收入-支出)"]];
+  for(const c of catSummary()) sum.push([c.name,c.type==="income"?"收入":"支出",c.total]);
+  sum.push([]); sum.push(["總收入","",t.inc]); sum.push(["總支出","",t.exp]); sum.push(["淨額","",t.net]);
+  const ws2=XLSX.utils.aoa_to_sheet(sum); ws2["!cols"]=[{wch:18},{wch:8},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws2,"科目彙總");
+  const label=state.filterYear==="all"?"全部":`民國${state.filterYear}年`;
+  XLSX.writeFile(wb,`記帳_${label}_${todayISO()}.xlsx`);
+}
+
+// ===== 事件代理 =====
+el.addEventListener("click", e=>{
+  const t=e.target.closest("[data-act]"); if(!t)return;
+  const a=t.dataset.act, v=t.dataset.val;
+  if(a==="login") login();
+  else if(a==="logout") logout();
+  else if(a==="tab"){ state.tab=v; render(); }
+  else if(a==="ftype"){ state.f.type=v; const cs=state.categories.filter(c=>c.type===v); if(!cs.find(c=>c.id===state.f.cat)) state.f.cat=cs[0]?.id||""; render(); }
+  else if(a==="submit") submitRecord();
+  else if(a==="cancel"){ resetForm(); render(); }
+  else if(a==="edit") startEdit(v);
+  else if(a==="del") delRecord(v);
+  else if(a==="export") exportExcel();
+  else if(a==="newcattype"){ state.newCat.type=v; render(); }
+  else if(a==="addcat") addCat();
+  else if(a==="delcat") delCat(v);
+});
+el.addEventListener("input", e=>{
+  const t=e.target.closest("[data-model]"); if(!t)return;
+  const path=t.dataset.model, val=t.value;
+  if(path==="f.date")state.f.date=val;
+  else if(path==="f.cat")state.f.cat=val;
+  else if(path==="f.amount")state.f.amount=val;
+  else if(path==="f.note")state.f.note=val;
+  else if(path==="filterYear"){state.filterYear=val;render();}
+  else if(path==="filterMonth"){state.filterMonth=val;render();}
+  else if(path==="newCat.name")state.newCat.name=val;
+});
+
+// ===== 畫面 =====
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function render(){
+  if(!CONFIG_OK) return;
+  if(!state.user){
+    el.innerHTML = `<div class="login">
+      <h1>肆參建築師事務所 · 記帳</h1>
+      <p>書審報稅記帳系統<br>用 Google 帳號登入,手機與電腦同步同一份資料</p>
+      <button class="gbtn" data-act="login">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt=""> 使用 Google 登入
+      </button>
+    </div>`;
+    return;
+  }
+  const t=totals();
+  const filterBar = `<div class="filters">
+    <select data-model="filterYear">
+      <option value="all"${state.filterYear==="all"?" selected":""}>全部年度</option>
+      ${years().map(y=>`<option value="${y}"${+state.filterYear===y?" selected":""}>民國 ${y} 年</option>`).join("")}
+    </select>
+    <select data-model="filterMonth">
+      <option value="all"${state.filterMonth==="all"?" selected":""}>全部月份</option>
+      ${Array.from({length:12},(_,i)=>String(i+1).padStart(2,"0")).map(m=>`<option value="${m}"${state.filterMonth===m?" selected":""}>${+m} 月</option>`).join("")}
+    </select></div>`;
+  const statRow = (a,b,c)=>`<div class="statrow">
+    <div class="stat"><div class="l">${a.l}</div><div class="v" style="color:${a.c}">${fmt(a.v)}</div></div>
+    <div class="stat"><div class="l">${b.l}</div><div class="v" style="color:${b.c}">${fmt(b.v)}</div></div>
+    <div class="stat"><div class="l">${c.l}</div><div class="v" style="color:${c.c}">${fmt(c.v)}</div></div></div>`;
+
+  let body="";
+  if(state.tab==="entry"){
+    const cs=state.categories.filter(c=>c.type===state.f.type);
+    if(cs.length&&!cs.find(c=>c.id===state.f.cat)) state.f.cat=cs[0].id;
+    body=`<div class="card">
+      <div class="field"><label class="lbl">日期</label><input type="date" value="${state.f.date}" data-model="f.date"></div>
+      <div class="field"><label class="lbl">類型</label><div class="seg">
+        <button class="segbtn ${state.f.type==="expense"?"exp":""}" data-act="ftype" data-val="expense">支出</button>
+        <button class="segbtn ${state.f.type==="income"?"inc":""}" data-act="ftype" data-val="income">收入</button>
+      </div></div>
+      <div class="field"><label class="lbl">科目</label><select data-model="f.cat">
+        ${cs.map(c=>`<option value="${c.id}"${state.f.cat===c.id?" selected":""}>${esc(c.name)}</option>`).join("")}
+      </select></div>
+      <div class="field"><label class="lbl">金額</label><input type="number" inputmode="decimal" value="${state.f.amount}" placeholder="0" data-model="f.amount"></div>
+      <div class="field"><label class="lbl">摘要</label><input type="text" value="${esc(state.f.note)}" placeholder="例:GPT、GOOGLE雲端、板橋-台中" data-model="f.note"></div>
+      <div class="row">
+        <button class="primary" data-act="submit">${state.editingId?"儲存修改":"新增記錄"}</button>
+        ${state.editingId?`<button class="ghost" data-act="cancel">取消</button>`:""}
+      </div></div>`;
+  }
+  else if(state.tab==="list"){
+    const list=filtered();
+    body=filterBar+
+      statRow({l:"收入",v:t.inc,c:"var(--inc)"},{l:"支出",v:t.exp,c:"var(--exp)"},{l:"淨額",v:t.net,c:t.net>=0?"var(--inc)":"var(--exp)"})+
+      `<button class="export" data-act="export">⬇ 匯出 Excel(明細+月小計+年度總計)</button>
+      <div class="list">${list.length?list.map(r=>`
+        <div class="item"><div class="main">
+          <div class="top"><span class="cat">${esc(catName(r.catId))}</span>
+          <span class="amt" style="color:${r.type==="income"?"var(--inc)":"var(--exp)"}">${r.type==="income"?"+":"−"}${fmt(r.amount)}</span></div>
+          <div class="sub">${toMinguo(r.date)}${r.note?` <span class="note">· ${esc(r.note)}</span>`:""}</div>
+        </div><div class="actions">
+          <button class="mini" data-act="edit" data-val="${r.id}">改</button>
+          <button class="mini del" data-act="del" data-val="${r.id}">刪</button>
+        </div></div>`).join(""):`<div class="empty">沒有記錄</div>`}</div>`;
+  }
+  else if(state.tab==="summary"){
+    const cs=catSummary();
+    body=filterBar+
+      statRow({l:"總收入",v:t.inc,c:"var(--inc)"},{l:"總支出",v:t.exp,c:"var(--exp)"},{l:"淨額",v:t.net,c:t.net>=0?"var(--inc)":"var(--exp)"})+
+      `<button class="export" data-act="export">⬇ 匯出 Excel</button>
+      <div class="card"><div class="sumhead">各科目彙總</div>
+      ${cs.length?cs.map(c=>`<div class="sumrow"><span>${esc(c.name)}<span class="tag">${c.type==="income"?"收":"支"}</span></span>
+        <span style="color:${c.total>=0?"var(--inc)":"var(--exp)"};font-variant-numeric:tabular-nums">${fmt(c.total)}</span></div>`).join(""):`<div class="empty">沒有資料</div>`}
+      </div>`;
+  }
+  else if(state.tab==="categories"){
+    body=`<div class="card">
+      <div class="sumhead">新增科目</div>
+      <div class="field"><div class="seg">
+        <button class="segbtn ${state.newCat.type==="expense"?"exp":""}" data-act="newcattype" data-val="expense">支出科目</button>
+        <button class="segbtn ${state.newCat.type==="income"?"inc":""}" data-act="newcattype" data-val="income">收入科目</button>
+      </div></div>
+      <div class="row"><input type="text" placeholder="科目名稱" value="${esc(state.newCat.name)}" data-model="newCat.name" style="flex:1">
+        <button class="primary" data-act="addcat" style="flex:0 0 auto;padding:12px 20px">新增</button></div>
+      <div class="sumhead" style="margin-top:18px">現有科目</div>
+      ${state.categories.map(c=>`<div class="sumrow"><span>${esc(c.name)}<span class="tag">${c.type==="income"?"收":"支"}</span></span>
+        <button class="mini del" data-act="delcat" data-val="${c.id}">刪除</button></div>`).join("")}
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <header>
+      <div class="brand">肆參建築師事務所 · 記帳</div>
+      <div class="who"><b>${esc(state.user.displayName||state.user.email||"")}</b>
+        <button class="logout" data-act="logout">登出</button></div>
+    </header>
+    <div style="margin-bottom:12px"><span class="sync">☁ 已同步(手機/電腦共用)</span></div>
+    <nav class="tabs">
+      <button class="tab ${state.tab==="entry"?"active":""}" data-act="tab" data-val="entry">${state.editingId?"編輯":"記一筆"}</button>
+      <button class="tab ${state.tab==="list"?"active":""}" data-act="tab" data-val="list">明細</button>
+      <button class="tab ${state.tab==="summary"?"active":""}" data-act="tab" data-val="summary">彙總</button>
+      <button class="tab ${state.tab==="categories"?"active":""}" data-act="tab" data-val="categories">科目</button>
+    </nav>
+    ${body}
+    <footer>書審報稅記帳 · 資料儲存於你的 Firebase,僅你本人可存取,手機與電腦自動同步</footer>`;
+}
+</script>
+</body>
+</html>
