@@ -120,7 +120,7 @@ const DEFAULT_CATEGORIES = [
 // 113年度執行業務所得查核辦法/建築師費用標準:各科目報帳上限參考
 const TAX_LIMITS = {
   "伙食費": {kind:"fixed", label:"每人每月 3,000 元為限(含加班誤餐費)", note:"查核辦法§20-1"},
-  "旅費": {kind:"fixed", label:"國內出差:每人每日 700 元(本人/經理以上)、600 元(其他職員);國外依中央機關出差生活費日支數額認定", note:"查核辦法§20"},
+  "旅費": {kind:"fixed", label:"此上限僅適用「膳宿雜費」(三餐/住宿/雜支):國內每人每日 700 元(本人/經理以上)、600 元(其他職員);國外依中央機關出差生活費日支數額認定。機票、高鐵、車資等交通費本身採實支實付,憑合法憑證(電子機票、登機證、收據)全額核實認列,不受此定額限制", note:"查核辦法§20"},
   "交際費": {kind:"percent", rate:0.07, label:"業務收入 × 7%(建築師業適用)", note:"查核辦法§25"},
   "修繕費": {kind:"note", label:"增加原有資產價值或效能達2年以上者須資本化提列折舊,不得列為當年費用", note2:"查核辦法§23"},
   "雜項購置": {kind:"note", label:"無單獨金額上限,取具合法憑證且與業務相關即可核實認列"},
@@ -380,7 +380,7 @@ function render(){
       if(state.categories.find(c=>c.name==="旅費")){
         const days = filtered().filter(r=>r.type==="expense"&&catName(r.catId)==="旅費").length;
         const cap = 700*days, actual = catActual("旅費");
-        rows.push({name:"旅費", capLabel:days?`700 × ${days} 筆(以記錄筆數概算天數)`:"尚無記錄", cap, actual});
+        rows.push({name:"旅費", capLabel:days?`700 × ${days} 筆(以記錄筆數概算天數,僅膳宿雜費部分)`:"尚無記錄", cap, actual});
       }
       if(state.categories.find(c=>c.name==="交際費")){
         const cap = t.inc*0.07, actual = catActual("交際費");
@@ -400,7 +400,7 @@ function render(){
             </div>
           </div>`;
         }).join("")}
-        <div class="taxnote">伙食費上限以「目前篩選範圍內有交易的月份數」概算;旅費上限以「旅費記錄筆數」概算出差天數(每筆視為1天),僅供快速參考,實際應以真實天數與人數計算。</div>
+        <div class="taxnote">伙食費上限以「目前篩選範圍內有交易的月份數」概算;旅費上限只適用膳宿雜費(三餐/住宿/雜支),以「旅費記錄筆數」概算出差天數(每筆視為1天)——若這筆金額裡包含機票、高鐵等交通費,交通費部分是實支實付、不受此上限限制,故實際可報金額可能高於此處試算,僅供快速參考。</div>
       </div>`;
     })();
     const margin = t.inc>0 ? (t.net/t.inc*100) : null;
