@@ -369,6 +369,40 @@ function render(){
   else if(state.tab==="summary"){
     const cs=catSummary();
     const expCats=state.categories.filter(c=>c.type==="expense");
+    const catActual = name => filtered().filter(r=>r.type==="expense"&&catName(r.catId)===name).reduce((s,r)=>s+r.amount,0);
+    const limitCard = (()=>{
+      const rows=[];
+      if(state.categories.find(c=>c.name==="伙食費")){
+        const months = Math.max(1, new Set(filtered().map(r=>monthKey(r.date))).size);
+        const cap = 3000*months, actual = catActual("伙食費");
+        rows.push({name:"伙食費", capLabel:`3,000 × ${months} 月`, cap, actual});
+      }
+      if(state.categories.find(c=>c.name==="旅費")){
+        const days = filtered().filter(r=>r.type==="expense"&&catName(r.catId)==="旅費").length;
+        const cap = 700*days, actual = catActual("旅費");
+        rows.push({name:"旅費", capLabel:days?`700 × ${days} 筆(以記錄筆數概算天數)`:"尚無記錄", cap, actual});
+      }
+      if(state.categories.find(c=>c.name==="交際費")){
+        const cap = t.inc*0.07, actual = catActual("交際費");
+        rows.push({name:"交際費", capLabel:"收入 × 7%", cap, actual});
+      }
+      if(!rows.length) return "";
+      return `<div class="card">
+        <div class="sumhead">有金額上限科目 · 上限 / 現在 / 差多少</div>
+        ${rows.map(r=>{
+          const diff=r.cap-r.actual, over=diff<0;
+          return `<div class="taxrow">
+            <div class="tname">${esc(r.name)}<span class="tag" style="margin-left:8px">${r.capLabel}</span></div>
+            <div class="statrow" style="margin-top:8px;margin-bottom:0">
+              <div class="stat"><div class="l">上限</div><div class="v">${fmt(r.cap)}</div></div>
+              <div class="stat"><div class="l">現在</div><div class="v">${fmt(r.actual)}</div></div>
+              <div class="stat"><div class="l">${over?"已超過":"還可報"}</div><div class="v" style="color:${over?"var(--exp)":"var(--inc)"}">${over?"−":""}${fmt(Math.abs(diff))}</div></div>
+            </div>
+          </div>`;
+        }).join("")}
+        <div class="taxnote">伙食費上限以「目前篩選範圍內有交易的月份數」概算;旅費上限以「旅費記錄筆數」概算出差天數(每筆視為1天),僅供快速參考,實際應以真實天數與人數計算。</div>
+      </div>`;
+    })();
     const margin = t.inc>0 ? (t.net/t.inc*100) : null;
     const marginCard = margin===null ? "" : (()=>{
       const diff = margin - BOOK_REVIEW_MARGIN*100;
@@ -406,6 +440,7 @@ function render(){
       ${cs.length?cs.map(c=>`<div class="sumrow"><span>${esc(c.name)}<span class="tag">${c.type==="income"?"收":"支"}</span></span>
         <span style="color:${c.total>=0?"var(--inc)":"var(--exp)"};font-variant-numeric:tabular-nums">${fmt(c.total)}</span></div>`).join(""):`<div class="empty">沒有資料</div>`}
       </div>
+      ${limitCard}
       ${marginCard}
       ${taxCard}`;
   }
