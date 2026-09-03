@@ -58,6 +58,12 @@
   .sumhead{font-size:15px;font-weight:700;margin-bottom:12px;}
   .sumrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1efe8;font-size:15px;}
   .tag{font-size:11px;color:#8a8980;margin-left:8px;background:#f1efe8;padding:2px 6px;border-radius:6px;}
+  .taxrow{padding:10px 0;border-bottom:1px solid #f1efe8;}
+  .taxrow:last-child{border-bottom:none;}
+  .taxrow .tname{font-size:14px;font-weight:600;margin-bottom:3px;}
+  .taxrow .tdesc{font-size:12.5px;color:var(--muted);line-height:1.6;}
+  .taxrow .tval{font-weight:700;color:var(--text);}
+  .taxnote{font-size:11.5px;color:var(--hint);line-height:1.7;margin-top:10px;}
   footer{margin-top:22px;font-size:12px;color:var(--hint);text-align:center;line-height:1.7;}
   /* login */
   .login{max-width:380px;margin:80px auto;text-align:center;padding:0 20px;}
@@ -110,6 +116,22 @@ const DEFAULT_CATEGORIES = [
   {id:"c10",name:"勞務費",type:"expense"},
   {id:"c11",name:"設計費",type:"income"},
 ];
+
+// 113年度執行業務所得查核辦法/建築師費用標準:各科目報帳上限參考
+const TAX_LIMITS = {
+  "伙食費": {kind:"fixed", label:"每人每月 3,000 元為限(含加班誤餐費)", note:"查核辦法§20-1"},
+  "旅費": {kind:"fixed", label:"國內出差:每人每日 700 元(本人/經理以上)、600 元(其他職員);國外依中央機關出差生活費日支數額認定", note:"查核辦法§20"},
+  "交際費": {kind:"percent", rate:0.07, label:"業務收入 × 7%(建築師業適用)", note:"查核辦法§25"},
+  "修繕費": {kind:"note", label:"增加原有資產價值或效能達2年以上者須資本化提列折舊,不得列為當年費用", note2:"查核辦法§23"},
+  "雜項購置": {kind:"note", label:"無單獨金額上限,取具合法憑證且與業務相關即可核實認列"},
+  "文具用品及印刷": {kind:"note", label:"無單獨金額上限,取具合法憑證且與業務相關即可核實認列"},
+  "什費(其他費用)": {kind:"note", label:"無單獨金額上限,取具合法憑證且與業務相關即可核實認列"},
+  "交通費": {kind:"note", label:"與業務相關並取具憑證即可;屬汽車相關費用者以1輛列入財產目錄為限,業務家庭合用以1/2認列", note2:"查核辦法§15、§30"},
+  "燃料費(油資)": {kind:"note", label:"屬汽車相關費用,以1輛列入財產目錄為限,業務家庭合用以1/2認列", note2:"查核辦法§15、§30"},
+  "勞務費": {kind:"note", label:"無單獨金額上限,核實認列;支付複委託費不得超過原取得報酬,超出部分不予認定", note2:"查核辦法§32"},
+};
+// 依法設帳、書面審核純益率申報時,建築師業別適用純益率
+const BOOK_REVIEW_MARGIN = 0.20;
 
 const toMinguo = iso => { const d=new Date(iso+"T00:00:00"); return `${d.getFullYear()-1911}/${d.getMonth()+1}/${d.getDate()}`; };
 const minguoYear = iso => new Date(iso+"T00:00:00").getFullYear()-1911;
@@ -346,13 +368,46 @@ function render(){
   }
   else if(state.tab==="summary"){
     const cs=catSummary();
+    const expCats=state.categories.filter(c=>c.type==="expense");
+    const margin = t.inc>0 ? (t.net/t.inc*100) : null;
+    const marginCard = margin===null ? "" : (()=>{
+      const diff = margin - BOOK_REVIEW_MARGIN*100;
+      const good = diff>=0;
+      const advice = good
+        ? `你目前的實際純益率(${margin.toFixed(1)}%)高於建築師書審標準(${(BOOK_REVIEW_MARGIN*100).toFixed(0)}%)。若已依法設帳、保存憑證,改採「書審純益率申報」以收入 × ${(BOOK_REVIEW_MARGIN*100).toFixed(0)}% 計算所得額,會比用帳載實際數字申報繳更少的稅。`
+        : `你目前的實際純益率(${margin.toFixed(1)}%)低於建築師書審標準(${(BOOK_REVIEW_MARGIN*100).toFixed(0)}%)。用「帳載核實申報」(依實際收支數字)對你較有利,因為實際所得額低於書審標準所得(收入 × ${(BOOK_REVIEW_MARGIN*100).toFixed(0)}%);前提是要依法設帳並保存憑證,否則只能依部頒標準(收入×35%費用)申報。`;
+      return `<div class="card">
+        <div class="sumhead">純益率比較(建築師書審標準 ${(BOOK_REVIEW_MARGIN*100).toFixed(0)}%)</div>
+        <div class="statrow">
+          <div class="stat"><div class="l">目前純益率</div><div class="v" style="color:${good?"var(--inc)":"var(--exp)"}">${margin.toFixed(1)}%</div></div>
+          <div class="stat"><div class="l">書審標準</div><div class="v">${(BOOK_REVIEW_MARGIN*100).toFixed(0)}%</div></div>
+          <div class="stat"><div class="l">差距</div><div class="v" style="color:${good?"var(--inc)":"var(--exp)"}">${good?"+":""}${diff.toFixed(1)}%</div></div>
+        </div>
+        <div class="taxnote" style="margin-top:0">${advice}</div>
+      </div>`;
+    })();
+    const taxCard=`<div class="card">
+      <div class="sumhead">各科目報帳上限參考(建築師業)</div>
+      <div class="taxnote" style="margin-top:0;margin-bottom:10px">未依法設帳者,整體必要費用概算上限:收入 × 35% = <span class="tval">${fmt(t.inc*0.35)}</span> 元(113年度建築師費用標準,僅供整體概算,非逐科目上限)</div>
+      ${expCats.map(c=>{
+        const lim=TAX_LIMITS[c.name];
+        let desc, note;
+        if(!lim){ desc="無明文金額上限,取具合法憑證且與業務相關即可核實認列"; note=""; }
+        else if(lim.kind==="percent"){ desc=`${lim.label} = <span class="tval">${fmt(t.inc*lim.rate)}</span> 元`; note=lim.note||""; }
+        else { desc=lim.label; note=lim.note||lim.note2||""; }
+        return `<div class="taxrow"><div class="tname">${esc(c.name)}</div><div class="tdesc">${desc}${note?` <span class="tag" style="margin-left:0">${esc(note)}</span>`:""}</div></div>`;
+      }).join("")}
+      <div class="taxnote">資料來源:財政部113年度執行業務者費用標準、執行業務所得查核辦法。僅供參考試算,實際申報請以憑證及最新法規為準。</div>
+      </div>`;
     body=filterBar+
       statRow({l:"總收入",v:t.inc,c:"var(--inc)"},{l:"總支出",v:t.exp,c:"var(--exp)"},{l:"淨額",v:t.net,c:t.net>=0?"var(--inc)":"var(--exp)"})+
       `<button class="export" data-act="export">⬇ 匯出 Excel</button>
       <div class="card"><div class="sumhead">各科目彙總</div>
       ${cs.length?cs.map(c=>`<div class="sumrow"><span>${esc(c.name)}<span class="tag">${c.type==="income"?"收":"支"}</span></span>
         <span style="color:${c.total>=0?"var(--inc)":"var(--exp)"};font-variant-numeric:tabular-nums">${fmt(c.total)}</span></div>`).join(""):`<div class="empty">沒有資料</div>`}
-      </div>`;
+      </div>
+      ${marginCard}
+      ${taxCard}`;
   }
   else if(state.tab==="categories"){
     body=`<div class="card">

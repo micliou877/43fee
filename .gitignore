@@ -1,0 +1,7 @@
+# 私人稅務參考文件,不上傳到公開 repo
+報稅法規/
+
+# 系統
+.DS_Store
+Thumbs.db
+desktop.ini
