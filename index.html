@@ -129,6 +129,10 @@ const TAX_LIMITS = {
   "交通費": {kind:"note", label:"與業務相關並取具憑證即可;屬汽車相關費用者以1輛列入財產目錄為限,業務家庭合用以1/2認列", note2:"查核辦法§15、§30"},
   "燃料費(油資)": {kind:"note", label:"屬汽車相關費用,以1輛列入財產目錄為限,業務家庭合用以1/2認列", note2:"查核辦法§15、§30"},
   "勞務費": {kind:"note", label:"無單獨金額上限,核實認列;支付複委託費不得超過原取得報酬,超出部分不予認定", note2:"查核辦法§32"},
+  "租金支出": {kind:"note", label:"取具租賃契約及收據核實認列;若辦公室與住家合用而無法明確劃分面積,以1/2認列;若能劃分,依實際使用面積比例計算", note2:"查核辦法§15、§19"},
+  "電話費": {kind:"note", label:"與住家合用者,相關費用以1/2認列;專供業務使用之電話號碼得全額認列", note2:"查核辦法§15"},
+  "水電瓦斯費": {kind:"note", label:"業務與家庭合用、無法明確劃分者,以1/2認列", note2:"查核辦法§26"},
+  "捐贈": {kind:"percentNet", rate:0.10, label:"對教育、文化、公益、慈善機構或團體之捐贈,不得超過執行業務所得 × 10%;對國防、勞軍及政府之捐獻不受金額限制", note:"查核辦法§33-1"},
 };
 // 依法設帳、書面審核純益率申報時,建築師業別適用純益率
 const BOOK_REVIEW_MARGIN = 0.20;
@@ -386,6 +390,10 @@ function render(){
         const cap = t.inc*0.07, actual = catActual("交際費");
         rows.push({name:"交際費", capLabel:"收入 × 7%", cap, actual});
       }
+      if(state.categories.find(c=>c.name==="捐贈")){
+        const cap = Math.max(t.net,0)*0.10, actual = catActual("捐贈");
+        rows.push({name:"捐贈(公益慈善部分)", capLabel:"淨額 × 10%(概算,國防勞軍捐贈不受此限)", cap, actual});
+      }
       if(!rows.length) return "";
       return `<div class="card">
         <div class="sumhead">有金額上限科目 · 上限 / 現在 / 差多少</div>
@@ -428,6 +436,7 @@ function render(){
         let desc, note;
         if(!lim){ desc="無明文金額上限,取具合法憑證且與業務相關即可核實認列"; note=""; }
         else if(lim.kind==="percent"){ desc=`${lim.label} = <span class="tval">${fmt(t.inc*lim.rate)}</span> 元`; note=lim.note||""; }
+        else if(lim.kind==="percentNet"){ desc=`${lim.label}(概算:淨額 × ${(lim.rate*100).toFixed(0)}% ≈ <span class="tval">${fmt(Math.max(t.net,0)*lim.rate)}</span> 元,實際應依核定所得公式計算,僅供參考)`; note=lim.note||""; }
         else { desc=lim.label; note=lim.note||lim.note2||""; }
         return `<div class="taxrow"><div class="tname">${esc(c.name)}</div><div class="tdesc">${desc}${note?` <span class="tag" style="margin-left:0">${esc(note)}</span>`:""}</div></div>`;
       }).join("")}
